@@ -1,13 +1,40 @@
-import sqlite3
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from typing import List
+
+from crud import (
+    get_all_entries,
+    get_all_places,
+    get_all_products,
+    get_entry_by_id,
+    get_place_by_id,
+    get_product_by_id,
+    upsert_place,
+    upsert_product,
+    create_entry,
+)
+from schema import PlaceSchema, EntrySchema
+
+# ----------------------------- API Config -----------------------------
+
+
+DATABASE_URL = "postgresql+asyncpg://steffi:root@localhost:5432/db_durststrecke"
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+
+async def get_db():
+    async with async_session() as session:
+        yield session
+
 
 app = FastAPI()
 
 origins = [
     "http://kurze-durststrecke.de",
-    "http://localhost",
+    "http://localhost:5432",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -15,32 +42,90 @@ app.add_middleware(
     allow_methods=["GET"],
     allow_headers=[],
 )
-
-con = sqlite3.connect("./data/main.db")
-
-
-@app.get("/entries")
-async def get_entries():
-    return {}
-
-
-@app.get("/entries/{place_id}")
-async def get_entries_by_place_id(place_id):
-    return {"place_id": place_id}
-
-
-@app.get("/places")
-async def get_places():
-    return {}
-
-
-@app.get("/place/{place_id}")
-async def get_place(place_id):
-    return {"place_id": place_id}
+# ------------------------------ API Endpoints ----------------------------
+# -------------------------------- PRODUCTS -------------------------------
+# TODO: Handle ids
 
 
 @app.get("/products")
-async def get_products():
-    cur = con.cursor()
-    res = cur.execute("SELECT * FROM products")
-    return {"data": res.fetchall()}
+async def products(db: AsyncSession = Depends(get_db)):
+    return await get_all_products(db)
+
+
+@app.get("/products/{product_id}")
+async def read_product(product_id: int, db: AsyncSession = Depends(get_db)):
+    product = await get_product_by_id(db, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return product
+
+
+@app.post(
+    "/products"
+)  # Test {"productId": 999, "brandName": "TESTNAME","productName": "TESTNAME","productType": "TESTTYPE"}
+async def create_or_update_product(product: dict, db: AsyncSession = Depends(get_db)):
+    try:
+        await upsert_product(db, product)
+        return {"message": "Product created or updated"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# -------------------------------- PLACES -------------------------------
+
+
+@app.get("/places", response_model=List[PlaceSchema])
+async def read_places(db: AsyncSession = Depends(get_db)):
+    return await get_all_places(db)
+
+
+@app.get("/places/{place_id}")
+async def read_place(place_id: int, db: AsyncSession = Depends(get_db)):
+    place = await get_place_by_id(db, place_id)
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    return place
+
+
+@app.post(
+    "/places"
+)  # Test { "placeId": 9999, "lat": 10.000, "lon": 1.000, "placeName": "TestName", "placeType": "TestType", "address": "Testweg", "website": "http://test.de", "phone": "+123", "note": "TestNote"}
+async def create_or_update_place(
+    place: PlaceSchema, db: AsyncSession = Depends(get_db)
+):
+    print("Incoming data:", place)
+    try:
+        await upsert_place(db, place)
+        return {"message": "Place created or updated"}
+    except Exception as e:
+        print("message", place)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# -------------------------------- ENTIRES -------------------------------
+
+
+@app.get("/entries", response_model=List[EntrySchema])
+async def read_entries(db: AsyncSession = Depends(get_db)):
+    entries = await get_all_entries(db)
+    return entries
+
+
+@app.get("/entries/{entry_id}")
+async def read_entry(entry_id: int, db: AsyncSession = Depends(get_db)):
+    entry = await get_entry_by_id(db, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+@app.post(
+    "/entries"
+)  # Test { "entryId":99999, "placeId": 9999, "productId": 999, "price": 100, "volume": 0.5,"vomFass": false, "validFrom": "2000-01-01", "lastUpdate": "2005-01-01"}
+async def create_new_entry(entry: EntrySchema, db: AsyncSession = Depends(get_db)):
+    try:
+        db_entry = await create_entry(db, entry)
+        return db_entry
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=400, detail=f"Could not create entry: {str(e)}")
