@@ -1,13 +1,13 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import date
+from typing import Optional
 
-# TODO add Products Pydantic schema for consistency
+from pydantic import BaseModel
+
 # Pydantic for timestamps handeling
 
 
 class PlaceSchema(BaseModel):
-    place_id: int = None
+    place_id: Optional[int] = None
     lat: float
     lon: float
     place_name: str
@@ -23,7 +23,7 @@ class PlaceSchema(BaseModel):
 
 
 class EntrySchema(BaseModel):
-    entry_id: int
+    entry_id: Optional[int] = None
     place_id: int
     product_id: int
     price: Optional[float] = None
@@ -38,7 +38,7 @@ class EntrySchema(BaseModel):
 
 
 class ProductSchema(BaseModel):
-    product_id: int = None
+    product_id: Optional[int] = None
     brand_name: Optional[str] = None
     product_name: str
     product_type: str

@@ -1,20 +1,22 @@
 from sqlalchemy import (
+    Boolean,
     Column,
     Date,
     Float,
-    Integer,
-    String,
-    MetaData,
-    UniqueConstraint,
     ForeignKey,
-    Boolean,
+    Integer,
+    MetaData,
+    String,
+    UniqueConstraint,
 )
-
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import DeclarativeBase, relationship
 
 # Point to public schema explicitly
 metadata = MetaData()
-Base = declarative_base(metadata=metadata)
+
+
+class Base(DeclarativeBase):
+    metadata = metadata
 
 
 class Place(Base):
@@ -73,7 +75,3 @@ class Entry(Base):
     # Optional relationships (if you want to access places/products easily)
     place = relationship("Place")
     product = relationship("Product")
-
-
-# products = await get_all_products(db)
-# ProductSchema =  [Product.from_orm(p) for p in products]
