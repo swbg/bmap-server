@@ -9,63 +9,71 @@ from sqlalchemy import (
     ForeignKey,
     Boolean,
 )
+
 from sqlalchemy.orm import declarative_base, relationship
 
 # Point to public schema explicitly
-metadata = MetaData(schema="public")
+metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
 
 class Place(Base):
     __tablename__ = "places"
 
-    placeId = Column(Integer, primary_key=True, index=True)
+    place_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     lat = Column(Float, nullable=False)
     lon = Column(Float, nullable=False)
-    placeName = Column(String(255), nullable=False)
-    placeType = Column(String(255))
+    place_name = Column(String(255), nullable=False)
+    place_type = Column(String(255))
     address = Column(String(255))
     website = Column(String(255))
     phone = Column(String(50))
     note = Column(String(255))
-    validUntil = Column(Date)
+    valid_until = Column(Date, nullable=True)
 
 
 class Product(Base):
     __tablename__ = "products"
 
-    productId = Column(Integer, primary_key=True, index=True)
-    brandName = Column(String(255))
-    productName = Column(String(255))
-    productType = Column(String(255))
+    product_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    brand_name = Column(String(255))
+    product_name = Column(String(255))
+    product_type = Column(String(255))
 
 
 class Entry(Base):
     __tablename__ = "entries"
     __table_args__ = (
         UniqueConstraint(
-            "placeId", "productId", "validFrom", name="unique_place_product_validfrom"
+            "place_id",
+            "product_id",
+            "valid_from",
+            name="unique_place_product_validfrom",
         ),
     )
 
-    entryId = Column(Integer, primary_key=True, index=True)
-    placeId = Column(
+    entry_id = Column(Integer, primary_key=True, index=True)
+    place_id = Column(
         Integer,
-        ForeignKey("places.placeId", onupdate="CASCADE", ondelete="CASCADE"),
+        ForeignKey("places.place_id", onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
     )
-    productId = Column(
+    product_id = Column(
         Integer,
-        ForeignKey("products.productId", onupdate="CASCADE", ondelete="CASCADE"),
+        ForeignKey("products.product_id", onupdate="CASCADE", ondelete="CASCADE"),
         nullable=False,
     )
     price = Column(Float, nullable=True)
     volume = Column(Float, nullable=True)
-    vomFass = Column(Boolean, nullable=True)
-    validFrom = Column(Date, nullable=True)
-    lastUpdate = Column(Date, nullable=True)
-    validUntil = Column(Date, nullable=True)
+    vom_fass = Column(Boolean, nullable=True)
+    valid_from = Column(Date, nullable=True)
+    last_update = Column(Date, nullable=True)
+    valid_until = Column(Date, nullable=True)
 
     # Optional relationships (if you want to access places/products easily)
     place = relationship("Place")
     product = relationship("Product")
+
+
+# products = await get_all_products(db)
+# ProductSchema =  [Product.from_orm(p) for p in products]

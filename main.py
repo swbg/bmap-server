@@ -15,14 +15,19 @@ from crud import (
     upsert_product,
     create_entry,
 )
-from schema import PlaceSchema, EntrySchema
+from schema import PlaceSchema, EntrySchema, ProductSchema
 
 # ----------------------------- API Config -----------------------------
 
 
-DATABASE_URL = "postgresql+asyncpg://steffi:root@localhost:5432/db_durststrecke"
+# DATABASE_URL = "postgresql+asyncpg://steffi:root@localhost:5432/db_durststrecke"
+# engine = create_async_engine(DATABASE_URL, echo=True)
+# async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+DATABASE_URL = "sqlite+aiosqlite:///./data/main.db"
+# Create engine and session
 engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
 async def get_db():
@@ -35,12 +40,16 @@ app = FastAPI()
 origins = [
     "http://kurze-durststrecke.de",
     "http://localhost:5432",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_methods=["GET"],
-    allow_headers=[],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 # ------------------------------ API Endpoints ----------------------------
 # -------------------------------- PRODUCTS -------------------------------
@@ -62,8 +71,10 @@ async def read_product(product_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.post(
     "/products"
-)  # Test {"productId": 999, "brandName": "TESTNAME","productName": "TESTNAME","productType": "TESTTYPE"}
-async def create_or_update_product(product: dict, db: AsyncSession = Depends(get_db)):
+)  # Test {"product_id": 999, "brand_name": "TESTNAME","product_name": "TESTNAME","product_type": "TESTTYPE"}
+async def create_or_update_product(
+    product: ProductSchema, db: AsyncSession = Depends(get_db)
+):
     try:
         await upsert_product(db, product)
         return {"message": "Product created or updated"}
@@ -89,7 +100,7 @@ async def read_place(place_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.post(
     "/places"
-)  # Test { "placeId": 9999, "lat": 10.000, "lon": 1.000, "placeName": "TestName", "placeType": "TestType", "address": "Testweg", "website": "http://test.de", "phone": "+123", "note": "TestNote"}
+)  # Test { "place_id": 9999, "lat": 10.000, "lon": 1.000, "place_name": "TestName", "place_type": "TestType", "address": "Testweg", "website": "http://test.de", "phone": "+123", "note": "TestNote"}
 async def create_or_update_place(
     place: PlaceSchema, db: AsyncSession = Depends(get_db)
 ):
@@ -121,7 +132,7 @@ async def read_entry(entry_id: int, db: AsyncSession = Depends(get_db)):
 
 @app.post(
     "/entries"
-)  # Test { "entryId":99999, "placeId": 9999, "productId": 999, "price": 100, "volume": 0.5,"vomFass": false, "validFrom": "2000-01-01", "lastUpdate": "2005-01-01"}
+)  # Test { "entry_id":99999, "place_id": 9999, "product_id": 999, "price": 100, "volume": 0.5,"vom_fass": false, "valid_from": "2000-01-01", "last_update": "2005-01-01"}
 async def create_new_entry(entry: EntrySchema, db: AsyncSession = Depends(get_db)):
     try:
         db_entry = await create_entry(db, entry)

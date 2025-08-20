@@ -2,37 +2,46 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import date
 
-#TODO add Products Pydantic schema for consistency
-# Pydantic for timestamps handeling 
+# TODO add Products Pydantic schema for consistency
+# Pydantic for timestamps handeling
+
 
 class PlaceSchema(BaseModel):
-    placeId: int
+    place_id: int = None
     lat: float
     lon: float
-    placeName: str
-    placeType: Optional[str] = None
+    place_name: str
+    place_type: Optional[str] = None
     address: Optional[str] = None
     website: Optional[str] = None
     phone: Optional[str] = None
     note: Optional[str] = None
-    validUntil: Optional[date] = (
-        None  
-    )
+    valid_until: Optional[date] = None
 
     class Config:
         orm_mode = True
 
 
 class EntrySchema(BaseModel):
-    entryId: int
-    placeId: int
-    productId: int
+    entry_id: int
+    place_id: int
+    product_id: int
     price: Optional[float] = None
     volume: Optional[float] = None
-    vomFass: Optional[bool] = None
-    validFrom: Optional[date] = None
-    lastUpdate: Optional[date] = None
-    validUntil: Optional[date] = None
+    vom_fass: Optional[bool] = None
+    valid_from: Optional[date] = None
+    last_update: Optional[date] = None
+    valid_until: Optional[date] = None
+
+    class Config:
+        orm_mode = True
+
+
+class ProductSchema(BaseModel):
+    product_id: int = None
+    brand_name: Optional[str] = None
+    product_name: str
+    product_type: str
 
     class Config:
         orm_mode = True
